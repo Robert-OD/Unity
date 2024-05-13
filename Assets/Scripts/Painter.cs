@@ -31,7 +31,7 @@ public class Painter : MonoBehaviour
     {
         rend = hit.collider.GetComponent<Renderer>();
 
-        rend.material = new Material(rend.sharedMaterial);
+        rend.material = rend.material;
         rend.material.mainTexture = paintTexture;
         Vector2 pixelUV = hit.textureCoord;
         pixelUV.x *= paintTexture.width;
