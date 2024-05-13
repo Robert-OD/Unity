@@ -69,27 +69,43 @@ public class PaintableObject : MonoBehaviour
     {
         Texture2D paintTexture = paintMaterial.GetTexture("_PaintTex") as Texture2D;
         Texture2D ageTexture = paintMaterial.GetTexture("_AgeTex") as Texture2D;
-        int baseBrushSize = 10;  // Base size of the brush
-        Vector3 lossyScale = hitTransform.lossyScale;
-        float averageScale = (lossyScale.x + lossyScale.y + lossyScale.z) / 3f;
-        int adjustedBrushSize = Mathf.Max(1, Mathf.RoundToInt(baseBrushSize / averageScale));
+        int baseBrushSize = 5;  // Base size for each spot of the burst
+        int numberOfShots = 10;  // Number of paint spots in the burst
+        float spreadRadius = 500f;  // Radius around the UV click point where shots can land
 
-        for (int x = -adjustedBrushSize; x <= adjustedBrushSize; x++)
+        // Loop over the number of shots to simulate a shotgun burst
+        for (int i = 0; i < numberOfShots; i++)
         {
-            for (int y = -adjustedBrushSize; y <= adjustedBrushSize; y++)
+            // Generate random angle and radius for the spread
+            float angle = Random.Range(0, 2 * Mathf.PI);
+            float radius = Random.Range(0, spreadRadius);
+
+            // Calculate the offset from the center point based on the random angle and radius
+            int offsetX = Mathf.RoundToInt(radius * Mathf.Cos(angle));
+            int offsetY = Mathf.RoundToInt(radius * Mathf.Sin(angle));
+
+            // Determine the area to paint for each individual shot
+            for (int x = -baseBrushSize; x <= baseBrushSize; x++)
             {
-                int px = (int)(uv.x * paintTexture.width) + x;
-                int py = (int)(uv.y * paintTexture.height) + y;
-                if (px >= 0 && px < paintTexture.width && py >= 0 && py < paintTexture.height)
+                for (int y = -baseBrushSize; y <= baseBrushSize; y++)
                 {
-                    paintTexture.SetPixel(px, py, Color.red);
-                    ageTexture.SetPixel(px, py, new Color(0, 0, 0, 1)); // Reset age
+                    int px = (int)(uv.x * paintTexture.width) + offsetX + x;
+                    int py = (int)(uv.y * paintTexture.height) + offsetY + y;
+                    if (px >= 0 && px < paintTexture.width && py >= 0 && py < paintTexture.height)
+                    {
+                        paintTexture.SetPixel(px, py, Color.red);
+                        // Initialize age to a very small value but non-zero
+                        ageTexture.SetPixel(px, py, new Color(0.01f, 0, 0, 1)); // Start age slightly above zero
+                    }
                 }
             }
         }
+
         paintTexture.Apply();
         ageTexture.Apply();
     }
+
+
 
     void UpdateTextureAges()
     {
@@ -98,12 +114,18 @@ public class PaintableObject : MonoBehaviour
 
         for (int i = 0; i < ageData.Length; i++)
         {
-            Color agePixel = ageData[i];
-            agePixel.r += Time.deltaTime * 0.25f; // Increment age
-            ageData[i] = agePixel;
+            // Increment age for all pixels, but only if they haven't fully aged yet
+            if (ageData[i].r < 1.0f)
+            {
+                float incrementedAge = ageData[i].r + Time.deltaTime * 0.75f; // Adjust aging rate here
+                ageData[i].r = Mathf.Clamp(incrementedAge, 0.0f, 1.0f); // Ensure age does not exceed 1
+            }
         }
 
         ageTexture.SetPixels(ageData);
         ageTexture.Apply();
     }
+
+
+
 }
