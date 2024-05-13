@@ -20,6 +20,8 @@ public class PaintableObject : MonoBehaviour
                 CreateOrModifyMaterial(hit);
             }
         }
+
+        UpdateTextureAges(); // Update the age of the paint every frame
     }
 
     private void CreateOrModifyMaterial(RaycastHit hit)
@@ -29,13 +31,13 @@ public class PaintableObject : MonoBehaviour
             paintMaterial = new Material(Shader.Find("Custom/SimplePaintShader"));
             paintMaterial.SetTexture("_MainTex", GetComponent<Renderer>().material.mainTexture);
             paintMaterial.SetTexture("_PaintTex", GeneratePaintTexture());
+            paintMaterial.SetTexture("_AgeTex", GenerateAgeTexture());
             GetComponent<Renderer>().material = paintMaterial;
             materialCreated = true;
         }
 
         PaintOnTexture(hit.textureCoord, hit.transform);
     }
-
 
     private Texture2D GeneratePaintTexture()
     {
@@ -50,19 +52,28 @@ public class PaintableObject : MonoBehaviour
         return paintTexture;
     }
 
+    private Texture2D GenerateAgeTexture()
+    {
+        Texture2D ageTexture = new Texture2D(1024, 1024, TextureFormat.RFloat, false);
+        float[] ageValues = new float[ageTexture.width * ageTexture.height];
+        for (int i = 0; i < ageValues.Length; i++)
+        {
+            ageValues[i] = 0; // Initialize ages to 0
+        }
+        ageTexture.SetPixelData(ageValues, 0);
+        ageTexture.Apply();
+        return ageTexture;
+    }
+
     private void PaintOnTexture(Vector2 uv, Transform hitTransform)
     {
         Texture2D paintTexture = paintMaterial.GetTexture("_PaintTex") as Texture2D;
+        Texture2D ageTexture = paintMaterial.GetTexture("_AgeTex") as Texture2D;
         int baseBrushSize = 10;  // Base size of the brush
-
-        // Calculate average scale to adjust the brush size more uniformly
         Vector3 lossyScale = hitTransform.lossyScale;
         float averageScale = (lossyScale.x + lossyScale.y + lossyScale.z) / 3f;
+        int adjustedBrushSize = Mathf.Max(1, Mathf.RoundToInt(baseBrushSize / averageScale));
 
-        // Adjust the brush size based on the average scale of the object
-        int adjustedBrushSize = Mathf.Max(1, Mathf.RoundToInt(baseBrushSize / averageScale));  // Ensure at least 1 pixel
-
-        // Determine the area to paint
         for (int x = -adjustedBrushSize; x <= adjustedBrushSize; x++)
         {
             for (int y = -adjustedBrushSize; y <= adjustedBrushSize; y++)
@@ -72,11 +83,27 @@ public class PaintableObject : MonoBehaviour
                 if (px >= 0 && px < paintTexture.width && py >= 0 && py < paintTexture.height)
                 {
                     paintTexture.SetPixel(px, py, Color.red);
+                    ageTexture.SetPixel(px, py, new Color(0, 0, 0, 1)); // Reset age
                 }
             }
         }
         paintTexture.Apply();
+        ageTexture.Apply();
     }
 
+    void UpdateTextureAges()
+    {
+        Texture2D ageTexture = paintMaterial.GetTexture("_AgeTex") as Texture2D;
+        Color[] ageData = ageTexture.GetPixels();
 
+        for (int i = 0; i < ageData.Length; i++)
+        {
+            Color agePixel = ageData[i];
+            agePixel.r += Time.deltaTime * 0.25f; // Increment age
+            ageData[i] = agePixel;
+        }
+
+        ageTexture.SetPixels(ageData);
+        ageTexture.Apply();
+    }
 }
