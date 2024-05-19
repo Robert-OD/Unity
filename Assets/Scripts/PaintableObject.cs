@@ -69,9 +69,9 @@ public class PaintableObject : MonoBehaviour
     {
         Texture2D paintTexture = paintMaterial.GetTexture("_PaintTex") as Texture2D;
         Texture2D ageTexture = paintMaterial.GetTexture("_AgeTex") as Texture2D;
-        int baseBrushSize = 5;  // Base size for each spot of the burst
-        int numberOfShots = 10;  // Number of paint spots in the burst
-        float spreadRadius = 500f;  // Radius around the UV click point where shots can land
+        int baseBrushSize = 1;  // Base size for each spot of the burst
+        int numberOfShots = 5;  // Number of paint spots in the burst
+        float spreadRadius = 50f;  // Radius around the UV click point where shots can land
 
         // Loop over the number of shots to simulate a shotgun burst
         for (int i = 0; i < numberOfShots; i++)
